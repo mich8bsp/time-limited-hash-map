@@ -7,12 +7,14 @@ import akka.util.Timeout;
 import operationMessages.GetMessage;
 import operationMessages.KeyValuePair;
 import operationMessages.PutMessage;
+import operationMessages.SizeMessage;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -36,8 +38,19 @@ public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
         mapActor.tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
+    private Object askActor(Object message){
+        Timeout timeout = new Timeout(Duration.create(TIMEOUT, "seconds"));
+        Future<Object> future = Patterns.ask(mapActor, message, timeout);
+        try {
+            return Await.result(future, timeout.duration());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public int size() {
-        return 0;
+        Integer size = (Integer) askActor(new SizeMessage());
+        return size!=null ? size : -1;
     }
 
     public boolean isEmpty() {
@@ -53,14 +66,10 @@ public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
     }
 
     public V get(Object key) {
-        Timeout timeout = new Timeout(Duration.create(TIMEOUT, "seconds"));
-        Future<Object> future = Patterns.ask(mapActor, new GetMessage<>(key), timeout);
-        try {
-            KeyValuePair<K, V> storedEntry = (KeyValuePair<K, V>) Await.result(future, timeout.duration());
-            return storedEntry.getValue();
-        } catch (Exception e) {
-            return null;
-        }
+        KeyValuePair<K, V> storedEntry = (KeyValuePair<K, V>) askActor(new GetMessage<>(key));
+        return Optional.ofNullable(storedEntry)
+                .map(KeyValuePair::getValue)
+                .orElse(null);
     }
 
     public V put(K key, V value) {

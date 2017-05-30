@@ -3,6 +3,7 @@ import akka.actor.Props;
 import operationMessages.GetMessage;
 import operationMessages.KeyValuePair;
 import operationMessages.PutMessage;
+import operationMessages.SizeMessage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +48,9 @@ public class MapActor<K, V> extends AbstractActor {
                     if(storedValue.timestamp<=message.removalTime){
                         underlyingMap.remove(message.key);
                     }
+                })
+                .match(SizeMessage.class, message -> {
+                    sender().tell(underlyingMap.size(), self());
                 })
                 .build();
     }

@@ -24,8 +24,11 @@ public class TimeLimitedHashMapTest {
 
     @Test
     public void testGetPut(){
+        Assert.assertEquals(0, testMap.size());
         testMap.put(5, "test");
+        Assert.assertEquals(1, testMap.size());
         testMap.put(4, "test2");
+        Assert.assertEquals(2, testMap.size());
         Assert.assertEquals("test", testMap.get(5));
         Assert.assertEquals("test2", testMap.get(4));
         Assert.assertEquals(null, testMap.get(3));
