@@ -2,6 +2,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 import operationMessages.GetMessage;
@@ -50,7 +51,10 @@ public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
 
     public int size() {
         Integer size = (Integer) askActor(new SizeMessage());
-        return size!=null ? size : -1;
+        if(size==null){
+            throw new RuntimeException("Waiting for size operation timed out");
+        }
+        return size;
     }
 
     public boolean isEmpty() {
@@ -62,7 +66,7 @@ public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
     }
 
     public boolean containsValue(Object value) {
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     public V get(Object key) {
