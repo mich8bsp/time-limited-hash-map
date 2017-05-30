@@ -5,4 +5,8 @@ package operationMessages;
  */
 public class GetMessage<K, V> {
     public K key;
+
+    public GetMessage(K key) {
+        this.key=key;
+    }
 }
