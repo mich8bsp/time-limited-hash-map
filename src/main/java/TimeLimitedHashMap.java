@@ -12,11 +12,9 @@ import java.util.Set;
  */
 public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
 
-    private long timeLimitMillis = -1;
     private ActorRef mapActor;
 
     private TimeLimitedHashMap(long timeLimitMillis) {
-        this.timeLimitMillis = timeLimitMillis;
         this.mapActor = ActorSystem.create("MapActorSystem").actorOf(Props.create(MapActor.class, timeLimitMillis));
     }
 
