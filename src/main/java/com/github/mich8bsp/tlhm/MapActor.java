@@ -67,7 +67,13 @@ public class MapActor<K, V> extends AbstractActor {
                             .collect(Collectors.toSet());
                     sender().tell(entrySet, self());
                 })
-                .match(ContainsValueMessage.class, message -> sender().tell(underlyingMap.values().contains(message.getValue()), self()))
+                .match(ContainsValueMessage.class, message -> {
+                    Boolean containsValue = underlyingMap.values()
+                            .stream()
+                            .map(TimestampedValue::getValue)
+                            .anyMatch(x->x.equals(message.getValue()));
+                    sender().tell(containsValue, self());
+                })
                 .build();
     }
 

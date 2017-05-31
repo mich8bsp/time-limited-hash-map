@@ -75,12 +75,18 @@ public class TimeLimitedHashMapTest {
         Assert.assertEquals(3, testMap.keySet().size());
         Assert.assertEquals(3, testMap.values().size());
         Assert.assertEquals(3, testMap.entrySet().size());
+        Assert.assertTrue(testMap.containsValue("aaaa"));
+        Assert.assertFalse(testMap.containsValue("aa"));
+        Assert.assertFalse(testMap.containsKey(53));
+        Assert.assertTrue(testMap.containsKey(55));
 
         testMap.remove(55);
 
         Assert.assertEquals(2, testMap.keySet().size());
         Assert.assertEquals(2, testMap.values().size());
         Assert.assertEquals(2, testMap.entrySet().size());
+        Assert.assertFalse(testMap.containsValue("aaaa"));
+        Assert.assertFalse(testMap.containsKey(55));
 
         Map<Integer, String> mapToPut = new HashMap<>();
         mapToPut.put(1, "sdfs");

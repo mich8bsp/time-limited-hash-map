@@ -14,7 +14,4 @@ public class ContainsValueMessage<V> {
         return value;
     }
 
-    public void setValue(V value) {
-        this.value = value;
-    }
 }
