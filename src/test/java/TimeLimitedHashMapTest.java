@@ -8,6 +8,10 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Michael Bespalov on 29/05/2017.
@@ -117,7 +121,24 @@ public class TimeLimitedHashMapTest {
     }
 
     @Test
-    public void testConcurrent(){
+    public void testConcurrent() throws InterruptedException {
+        ((IClosableMap)testMap).close();
+        Thread.sleep(1000);
+        testMap = TimeLimitedHashMap.create(100);
 
+        ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(10);
+        ScheduledFuture<?> future = executorService.scheduleAtFixedRate(() -> testMap.put(5, "aaa"), 0, 50, TimeUnit.MILLISECONDS);
+
+        for(int i=0; i<1000; i++) {
+            testMap.put(5, "bbb");
+            if (i % 10 == 0) {
+                testMap.remove(5);
+            }
+            Thread.sleep(10);
+        }
+        Assert.assertTrue(testMap.containsKey(5));
+        future.cancel(true);
+        Thread.sleep(110);
+        Assert.assertFalse(testMap.containsKey(5));
     }
 }
