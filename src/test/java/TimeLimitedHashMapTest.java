@@ -1,4 +1,4 @@
-import com.github.mich8bsp.tlhm.IClosableMap;
+import com.github.mich8bsp.tlhm.ITimeLimitedHashMap;
 import com.github.mich8bsp.tlhm.MapClosedException;
 import com.github.mich8bsp.tlhm.TimeLimitedHashMap;
 import org.junit.After;
@@ -27,7 +27,7 @@ public class TimeLimitedHashMapTest {
 
     @After
     public void cleanup() throws InterruptedException {
-        ((IClosableMap)testMap).close();
+        ((ITimeLimitedHashMap)testMap).close();
         Thread.sleep(200);
     }
 
@@ -114,7 +114,7 @@ public class TimeLimitedHashMapTest {
     @Test(expected = MapClosedException.class)
     public void testOperationAfterClose() throws InterruptedException {
         testMap.put(1, "asb");
-        ((IClosableMap)testMap).close();
+        ((ITimeLimitedHashMap)testMap).close();
         testMap.put(1, "bsb");
         Thread.sleep(100);
         testMap.get(1);
@@ -122,7 +122,7 @@ public class TimeLimitedHashMapTest {
 
     @Test
     public void testConcurrent() throws InterruptedException {
-        ((IClosableMap)testMap).close();
+        ((ITimeLimitedHashMap)testMap).close();
         Thread.sleep(1000);
         testMap = TimeLimitedHashMap.create(100);
 

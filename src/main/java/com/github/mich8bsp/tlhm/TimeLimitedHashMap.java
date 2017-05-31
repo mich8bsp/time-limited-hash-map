@@ -1,7 +1,6 @@
 package com.github.mich8bsp.tlhm;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.pattern.Patterns;
@@ -11,10 +10,8 @@ import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static com.github.mich8bsp.tlhm.MapActorSystem.MAP_ACTOR_NAME;
@@ -22,7 +19,7 @@ import static com.github.mich8bsp.tlhm.MapActorSystem.MAP_ACTOR_NAME;
 /**
  * Created by Michael Bespalov on 29/05/2017.
  */
-public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
+public class TimeLimitedHashMap<K, V> implements ITimeLimitedHashMap<K, V> {
 
     private ActorRef mapActor;
     private static final long TIMEOUT = 5; //sec
@@ -32,7 +29,7 @@ public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
                 .actorOf(Props.create(MapActor.class, timeLimitMillis), MAP_ACTOR_NAME);
     }
 
-    public static <K, V> IClosableMap<K, V> create(long timeLimitMillis) {
+    public static <K, V> ITimeLimitedHashMap<K, V> create(long timeLimitMillis) {
         return new TimeLimitedHashMap<>(timeLimitMillis);
     }
 
@@ -41,6 +38,11 @@ public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
         if (mapActor != null && !mapActor.isTerminated()) {
             mapActor.tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
+    }
+
+    @Override
+    public void addRemovalCallbacks(List<Consumer<Entry<K, V>>> callbacks) {
+        //fixme
     }
 
     private void checkMapNotClosed() throws MapClosedException {
