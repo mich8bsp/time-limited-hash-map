@@ -42,7 +42,8 @@ public class TimeLimitedHashMap<K, V> implements ITimeLimitedHashMap<K, V> {
 
     @Override
     public void addRemovalCallbacks(List<Consumer<Entry<K, V>>> callbacks) {
-        //fixme
+        checkMapNotClosed();
+        mapActor.tell(new CallbackBundle<>(callbacks), ActorRef.noSender());
     }
 
     private void checkMapNotClosed() throws MapClosedException {

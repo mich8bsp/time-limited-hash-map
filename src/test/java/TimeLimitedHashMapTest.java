@@ -7,11 +7,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Created by Michael Bespalov on 29/05/2017.
@@ -140,5 +144,30 @@ public class TimeLimitedHashMapTest {
         future.cancel(true);
         Thread.sleep(110);
         Assert.assertFalse(testMap.containsKey(5));
+    }
+
+    @Test
+    public void testCallbacks() throws InterruptedException {
+        final int[] counter = {0};
+
+        Consumer<Map.Entry<Integer, String>> consumer = entry -> counter[0]++;
+        List<Consumer<Map.Entry<Integer, String>>> consumers = IntStream.range(0, 10)
+                .boxed()
+                .map(i -> consumer)
+                .collect(Collectors.toList());
+        ((ITimeLimitedHashMap<Integer, String>)testMap).addRemovalCallbacks(consumers);
+
+        testMap.put(1, "sdf");
+        Thread.sleep(500);
+        testMap.put(5, "sdfs");
+
+        Thread.sleep(600);
+
+        Assert.assertEquals(consumers.size(), counter[0]);
+
+        Thread.sleep(500);
+
+        Assert.assertEquals(2 * consumers.size(), counter[0]);
+
     }
 }

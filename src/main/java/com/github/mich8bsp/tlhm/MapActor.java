@@ -4,13 +4,11 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import com.github.mich8bsp.tlhm.operationMessages.*;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -21,6 +19,8 @@ public class MapActor<K, V> extends AbstractActor {
     private final long timeDelayMillis;
     private Map<K, TimestampedValue> underlyingMap = new HashMap<>();
     private ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(1);
+
+    private List<Consumer<Map.Entry<K, V>>> callbacks = new LinkedList<>();
 
     public MapActor(long timeDelayMillis) {
         this.timeDelayMillis = timeDelayMillis;
@@ -49,9 +49,11 @@ public class MapActor<K, V> extends AbstractActor {
                     getSender().tell(storedEntry, self());
                 })
                 .match(TimeRemovalMessage.class, message -> {
-                    TimestampedValue storedValue = underlyingMap.get(message.key);
+                    K key = (K)message.key;
+                    TimestampedValue storedValue = underlyingMap.get(key);
                     if(storedValue!=null && storedValue.timestamp<=message.removalTime){
-                        underlyingMap.remove(message.key);
+                        underlyingMap.remove(key);
+                        callbacks.forEach(callback -> callback.accept(new KeyValuePair<K, V>(key, storedValue.value)));
                     }
                 })
                 .match(SizeMessage.class, message -> sender().tell(underlyingMap.size(), self()))
@@ -74,6 +76,7 @@ public class MapActor<K, V> extends AbstractActor {
                             .anyMatch(x->x.equals(message.getValue()));
                     sender().tell(containsValue, self());
                 })
+                .match(CallbackBundle.class, message -> callbacks.addAll(message.getCallbacks()))
                 .build();
     }
 
