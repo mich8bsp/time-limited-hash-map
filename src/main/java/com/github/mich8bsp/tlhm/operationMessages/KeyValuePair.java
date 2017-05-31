@@ -1,4 +1,4 @@
-package operationMessages;
+package com.github.mich8bsp.tlhm.operationMessages;
 
 import java.util.Map;
 

@@ -1,3 +1,5 @@
+package com.github.mich8bsp.tlhm;
+
 import java.util.Map;
 
 /**

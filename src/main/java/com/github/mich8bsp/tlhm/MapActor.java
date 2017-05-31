@@ -1,6 +1,8 @@
+package com.github.mich8bsp.tlhm;
+
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import operationMessages.*;
+import com.github.mich8bsp.tlhm.operationMessages.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +26,13 @@ public class MapActor<K, V> extends AbstractActor {
         this.timeDelayMillis = timeDelayMillis;
     }
 
+    private void sendTimeoutRemoval(K key, long removalTime){
+        ActorRef mapActor = MapActorSystem.INSTANCE.getSystem().actorFor("/user/"+MapActorSystem.MAP_ACTOR_NAME);
+        if(mapActor!=null && !mapActor.isTerminated()){
+            mapActor.tell(new TimeRemovalMessage(key, removalTime), self());
+        }
+    }
+
     @Override
     public Receive createReceive() {
         return receiveBuilder()
@@ -31,8 +40,8 @@ public class MapActor<K, V> extends AbstractActor {
                     long removalTime = System.currentTimeMillis() + timeDelayMillis;
                     underlyingMap.put((K)message.getKey(), new TimestampedValue((V) message.getValue(), removalTime));
                     if(timeDelayMillis >0){
-                        Runnable removalSender = ()->self().tell(new TimeRemovalMessage((K) message.getKey(), removalTime), self());
-                        executorService.schedule(removalSender, removalTime, TimeUnit.MILLISECONDS);
+                        Runnable removalSender = ()-> sendTimeoutRemoval((K)message.getKey(), removalTime);
+                        executorService.schedule(removalSender, timeDelayMillis, TimeUnit.MILLISECONDS);
                     }
                 })
                 .match(GetMessage.class, message ->{

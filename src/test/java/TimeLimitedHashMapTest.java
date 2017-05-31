@@ -1,8 +1,12 @@
+import com.github.mich8bsp.tlhm.IClosableMap;
+import com.github.mich8bsp.tlhm.MapClosedException;
+import com.github.mich8bsp.tlhm.TimeLimitedHashMap;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -14,12 +18,13 @@ public class TimeLimitedHashMapTest {
 
     @Before
     public void init(){
-        testMap = TimeLimitedHashMap.create(5000);
+        testMap = TimeLimitedHashMap.create(1000);
     }
 
     @After
-    public void cleanup(){
+    public void cleanup() throws InterruptedException {
         ((IClosableMap)testMap).close();
+        Thread.sleep(200);
     }
 
     @Test
@@ -32,5 +37,81 @@ public class TimeLimitedHashMapTest {
         Assert.assertEquals("test", testMap.get(5));
         Assert.assertEquals("test2", testMap.get(4));
         Assert.assertEquals(null, testMap.get(3));
+    }
+
+    @Test
+    public void testRemove(){
+        testMap.put(32, "before");
+        String storedValue = testMap.remove(32);
+        Assert.assertEquals("before", storedValue);
+        Assert.assertEquals(0, testMap.size());
+        Assert.assertTrue(testMap.isEmpty());
+    }
+
+    @Test
+    public void testTimeout() throws InterruptedException {
+        Assert.assertTrue(testMap.isEmpty());
+        testMap.put(1, "aaa");
+        testMap.put(2, "bbb");
+        Thread.sleep(500);
+        testMap.put(1, "aaab");
+        Thread.sleep(600);
+        Assert.assertFalse(testMap.isEmpty());
+        Assert.assertEquals(1, testMap.size());
+        Assert.assertEquals("aaab", testMap.get(1));
+        Assert.assertNull(testMap.get(2));
+        Thread.sleep(500);
+        Assert.assertTrue(testMap.isEmpty());
+        Assert.assertEquals(0, testMap.size());
+        Assert.assertNull(testMap.get(1));
+    }
+
+    @Test
+    public void testMapOperations(){
+        testMap.put(5, "sdfs");
+        testMap.put(55, "aaaa");
+        testMap.put(314, "ascbffs");
+
+        Assert.assertEquals(3, testMap.keySet().size());
+        Assert.assertEquals(3, testMap.values().size());
+        Assert.assertEquals(3, testMap.entrySet().size());
+
+        testMap.remove(55);
+
+        Assert.assertEquals(2, testMap.keySet().size());
+        Assert.assertEquals(2, testMap.values().size());
+        Assert.assertEquals(2, testMap.entrySet().size());
+
+        Map<Integer, String> mapToPut = new HashMap<>();
+        mapToPut.put(1, "sdfs");
+        mapToPut.put(5, "aaaa");
+        mapToPut.put(53, "bbbb");
+        mapToPut.put(342, "asasa");
+
+        testMap.putAll(mapToPut);
+
+        Assert.assertEquals(5, testMap.keySet().size());
+        Assert.assertEquals(5, testMap.values().size());
+        Assert.assertEquals(5, testMap.entrySet().size());
+
+        testMap.clear();
+
+        Assert.assertEquals(0, testMap.keySet().size());
+        Assert.assertEquals(0, testMap.values().size());
+        Assert.assertEquals(0, testMap.entrySet().size());
+    }
+
+    @Test(expected = MapClosedException.class)
+    public void testOperationAfterClose() throws InterruptedException {
+        testMap.put(1, "asb");
+        ((IClosableMap)testMap).close();
+        testMap.put(1, "bsb");
+        Thread.sleep(100);
+        testMap.get(1);
+    }
+
+    @Test
+    public void testConcurrent(){
+
     }
 }
