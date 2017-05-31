@@ -13,7 +13,7 @@ Add the following dependency to the pom of your project:
 </dependency>
 ```
 
-Create with the hashmap with:
+Create the hashmap with:
 ```
 Map<K, V> yourMap = TimeLimitedHashMap.create(ttl);
 ```
