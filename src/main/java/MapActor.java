@@ -1,19 +1,18 @@
 import akka.actor.AbstractActor;
-import akka.actor.Props;
-import operationMessages.GetMessage;
-import operationMessages.KeyValuePair;
-import operationMessages.PutMessage;
-import operationMessages.SizeMessage;
+import akka.actor.ActorRef;
+import operationMessages.*;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
- * Created by U43155 on 29/05/2017.
+ * Created by Michael Bespalov on 29/05/2017.
  */
 public class MapActor<K, V> extends AbstractActor {
 
@@ -32,34 +31,50 @@ public class MapActor<K, V> extends AbstractActor {
                     long removalTime = System.currentTimeMillis() + timeDelayMillis;
                     underlyingMap.put((K)message.getKey(), new TimestampedValue((V) message.getValue(), removalTime));
                     if(timeDelayMillis >0){
-                        Runnable removalSender = ()->self().tell(new RemovalMessage((K) message.getKey(), removalTime), self());
+                        Runnable removalSender = ()->self().tell(new TimeRemovalMessage((K) message.getKey(), removalTime), self());
                         executorService.schedule(removalSender, removalTime, TimeUnit.MILLISECONDS);
                     }
                 })
                 .match(GetMessage.class, message ->{
-                    V value = Optional.ofNullable(underlyingMap.get(message.key))
-                            .map(TimestampedValue::getValue)
-                            .orElse(null);
-                    KeyValuePair<K, V> storedEntry = new KeyValuePair<>((K) message.key, value);
+                    KeyValuePair<K, V> storedEntry = extractEntry((K) message.key, underlyingMap.get(message.key));
                     getSender().tell(storedEntry, self());
                 })
-                .match(RemovalMessage.class, message -> {
+                .match(TimeRemovalMessage.class, message -> {
                     TimestampedValue storedValue = underlyingMap.get(message.key);
-                    if(storedValue.timestamp<=message.removalTime){
+                    if(storedValue!=null && storedValue.timestamp<=message.removalTime){
                         underlyingMap.remove(message.key);
                     }
                 })
-                .match(SizeMessage.class, message -> {
-                    sender().tell(underlyingMap.size(), self());
+                .match(SizeMessage.class, message -> sender().tell(underlyingMap.size(), self()))
+                .match(RemoveMessage.class, message -> {
+                    KeyValuePair<K, V> storedEntry = extractEntry((K)message.getKey(), underlyingMap.remove(message.getKey()));
+                    sender().tell(storedEntry, self());
                 })
+                .match(ClearMessage.class, message -> underlyingMap.clear())
+                .match(EntrySetMessage.class, message -> {
+                    Set<Map.Entry<K, V>> entrySet = underlyingMap.entrySet()
+                            .stream()
+                            .map(entry -> extractEntry(entry.getKey(), entry.getValue()))
+                            .collect(Collectors.toSet());
+                    sender().tell(entrySet, self());
+                })
+                .match(ContainsValueMessage.class, message -> sender().tell(underlyingMap.values().contains(message.getValue()), self()))
                 .build();
     }
 
-    private class RemovalMessage{
+
+    private KeyValuePair<K, V> extractEntry(K key, TimestampedValue mapValue){
+        V value = Optional.ofNullable(mapValue)
+                .map(TimestampedValue::getValue)
+                .orElse(null);
+        return new KeyValuePair<>(key, value);
+    }
+
+    private class TimeRemovalMessage {
         private K key;
         private long removalTime;
 
-        RemovalMessage(K key, long removalTime) {
+        TimeRemovalMessage(K key, long removalTime) {
             this.key = key;
             this.removalTime = removalTime;
         }
@@ -74,13 +89,10 @@ public class MapActor<K, V> extends AbstractActor {
             this.timestamp = timestamp;
         }
 
-        public V getValue() {
+        V getValue() {
             return value;
         }
 
-        public long getTimestamp() {
-            return timestamp;
-        }
     }
 
 }

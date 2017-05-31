@@ -5,10 +5,7 @@ import akka.actor.Props;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
-import operationMessages.GetMessage;
-import operationMessages.KeyValuePair;
-import operationMessages.PutMessage;
-import operationMessages.SizeMessage;
+import operationMessages.*;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
@@ -17,9 +14,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * Created by U43155 on 29/05/2017.
+ * Created by Michael Bespalov on 29/05/2017.
  */
 public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
 
@@ -66,7 +64,11 @@ public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
     }
 
     public boolean containsValue(Object value) {
-        throw new UnsupportedOperationException();
+        Boolean isContainsValue = (Boolean) askActor(new ContainsValueMessage<>(value));
+        if(isContainsValue==null){
+            throw new RuntimeException("Waiting for containsValue operation timed out");
+        }
+        return isContainsValue;
     }
 
     public V get(Object key) {
@@ -82,26 +84,37 @@ public class TimeLimitedHashMap<K, V> implements IClosableMap<K, V> {
     }
 
     public V remove(Object key) {
-        return null;
+        KeyValuePair<K, V> removedEntry = (KeyValuePair<K, V>)askActor(new RemoveMessage<>(key));
+        return Optional.ofNullable(removedEntry)
+                .map(KeyValuePair::getValue)
+                .orElse(null);
     }
 
     public void putAll(Map<? extends K, ? extends V> m) {
-
+        for(Entry<? extends K, ? extends V> entry : m.entrySet()){
+            put(entry.getKey(), entry.getValue());
+        }
     }
 
     public void clear() {
-
+        mapActor.tell(new ClearMessage(), ActorRef.noSender());
     }
 
     public Set<K> keySet() {
-        return null;
+        return entrySet()
+                .stream()
+                .map(Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
     public Collection<V> values() {
-        return null;
+        return entrySet()
+                .stream()
+                .map(Entry::getValue)
+                .collect(Collectors.toList());
     }
 
     public Set<Entry<K, V>> entrySet() {
-        return null;
+        return (Set<Entry<K, V>>) askActor(new EntrySetMessage());
     }
 }

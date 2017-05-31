@@ -1,9 +1,11 @@
 package operationMessages;
 
+import java.util.Map;
+
 /**
- * Created by mich8 on 30-May-17.
+ * Created by Michael Bespalov on 30-May-17.
  */
-public class KeyValuePair<K, V> {
+public class KeyValuePair<K, V> implements Map.Entry<K, V>{
     private K key;
     private V value;
 
@@ -16,15 +18,14 @@ public class KeyValuePair<K, V> {
         return key;
     }
 
-    public void setKey(K key) {
-        this.key = key;
-    }
-
     public V getValue() {
         return value;
     }
 
-    public void setValue(V value) {
+    @Override
+    public V setValue(V value) {
         this.value = value;
+        return value;
     }
+
 }
