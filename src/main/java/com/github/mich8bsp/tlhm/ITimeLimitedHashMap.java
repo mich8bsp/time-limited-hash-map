@@ -7,8 +7,11 @@ import java.util.function.Consumer;
 /**
  * Created by Michael Bespalov on 29/05/2017.
  */
-public interface ITimeLimitedHashMap<K, V> extends Map<K, V> {
+public interface ITimeLimitedHashMap<K, V> extends Map<K, V>, MapAsync<K, V> {
     void close();
 
-    void addRemovalCallbacks(List<Consumer<Entry<K, V>>> callbacks);
+    ITimeLimitedHashMap<K, V> addRemovalCallbacks(List<Consumer<Entry<K, V>>> callbacks);
+
+    ITimeLimitedHashMap<K, V> setOperationTimeout(long timeoutSec);
+
 }
